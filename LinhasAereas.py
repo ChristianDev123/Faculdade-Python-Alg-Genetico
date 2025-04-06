@@ -60,11 +60,13 @@ class LinhasAereas:
             mutacoes = self.grade_de_voos.mutacao()
             mutacoes = [GradeVoo(mutacao) for mutacao in mutacoes]
             mutacoes = sorted(mutacoes, key=lambda x: x.fitness, reverse=True)
+            cross_over = GradeVoo(mutacoes[0].cross_over(mutacoes[1].grade))
             if(len(mutacoes) > 0):
-                self.grade_de_voos = mutacoes[0]
+                self.grade_de_voos = mutacoes[0] if(cross_over.fitness < mutacoes[0].fitness) else cross_over
+            
 
 QTD_AERONAVES = 3
 
-problema = LinhasAereas(QTD_AERONAVES, 1000)
+problema = LinhasAereas(QTD_AERONAVES, 100)
 problema.executar()
 print(problema.grade_de_voos)

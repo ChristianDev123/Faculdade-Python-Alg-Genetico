@@ -1,11 +1,13 @@
 from copy import deepcopy
 import random
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 class GradeVoo:
     def __init__(self, grade):
         self.grade = grade
         self.fitness = self.calc_fitness()
+        self.horario_inicio = datetime(2025,6,4,0,0,0)
 
     def encontrar_possiveis_rotas(self, origem):
         response = []
@@ -22,6 +24,23 @@ class GradeVoo:
         response[para[0]][para[1]] = rota_atual
         return response
 
+    def recalcular_tempo(self, grade):
+        for i_aviao, aviao in enumerate(grade):
+            horario_inicio = deepcopy(self.horario_inicio)
+            for i_rota, rota in enumerate(aviao):
+                horario_embarque = rota[2]
+                horario_chegada = rota[3]
+                copia_rota = list(rota)
+
+                if(i_rota != 0): horario_inicio += relativedelta(hours=1)
+                copia_rota[2] = horario_inicio
+                horario_inicio += relativedelta(hours=((horario_chegada-horario_embarque).seconds/3600))
+                copia_rota[3] = horario_inicio
+                horario_inicio += relativedelta(minutes=30)
+                copia_rota[4] = horario_inicio
+                grade[i_aviao][i_rota] = tuple(copia_rota)
+        return grade
+
     def mutacao(self):
         mutacoes = []
         grade = deepcopy(self.grade)
@@ -33,7 +52,10 @@ class GradeVoo:
                     # possibilidade de mudanças
                     possibilidades = self.encontrar_possiveis_rotas(destino_anterior)
                     for possibilidade in possibilidades:
-                        mutacoes.append(self.swap((i_aviao, i_rota),possibilidade))
+                        nova_grade = self.swap((i_aviao, i_rota),possibilidade)
+                        nova_grade = self.recalcular_tempo(nova_grade)
+                        mutacoes.append(nova_grade)
+
                     return mutacoes
                 destino_anterior = rota[1]
         return mutacoes
@@ -53,9 +75,19 @@ class GradeVoo:
                 rota_anterior = rota
         return response
     
-    def cross_over(self, individuo2):
-        return []
-    
+    def cross_over(self, grade2):
+        linhas = len(self.grade)
+        colunas = len(self.grade[0])
+        metade = colunas // 2  # Ponto de divisão das colunas
+
+        # Criando a matriz mesclada
+        matriz_resultante = []
+        for i in range(linhas):
+            nova_linha = self.grade[i][:metade] + self.grade[i][metade:]  # Pega metade de cada matriz
+            matriz_resultante.append(nova_linha)
+        matriz_resultante = self.recalcular_tempo(matriz_resultante)
+        return matriz_resultante    
+                 
     def __lt__(self, grade2):
         return self.fitness > grade2.fitness
 
